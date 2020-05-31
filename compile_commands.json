@@ -1,0 +1,50 @@
+[
+    {
+        "arguments": [
+            "c++",
+            "-c",
+            "-w",
+            "-Wall",
+            "-O",
+            "-pg",
+            "-Iinclude/",
+            "-o",
+            "game",
+            "src/main.cpp"
+        ],
+        "directory": "/home/yangfan/Projects/MineSweeper",
+        "file": "src/main.cpp"
+    },
+    {
+        "arguments": [
+            "c++",
+            "-c",
+            "-w",
+            "-Wall",
+            "-O",
+            "-pg",
+            "-Iinclude/",
+            "-o",
+            "game",
+            "src/helper.cpp"
+        ],
+        "directory": "/home/yangfan/Projects/MineSweeper",
+        "file": "src/helper.cpp"
+    },
+    {
+        "arguments": [
+            "c++",
+            "-c",
+            "-w",
+            "-Wall",
+            "-O",
+            "-pg",
+            "-Iinclude/",
+            "-o",
+            "game",
+            "src/block.cpp"
+        ],
+        "directory": "/home/yangfan/Projects/MineSweeper",
+        "file": "src/block.cpp"
+    }
+]
