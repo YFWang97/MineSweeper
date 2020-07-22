@@ -26,6 +26,8 @@ typedef struct coordinate {
 #define SCREEN_WIDTH 500
 #define SCREEN_HEIGHT 400
 
+#define MAP_DIMENSION 20
+
 #define BLOCK_WIDTH 20
 
 #define BUTTON_WIDTH 80
@@ -41,5 +43,8 @@ extern SDL_Texture* winTexture;
 extern SDL_Texture* numTexture[8];
 extern SDL_Texture* selectedTexture;
 extern SDL_Texture* releasedTexture;
+
+#define LEFT_BUTTON 1
+#define RIGHT_BUTTON 2
 
 #endif
