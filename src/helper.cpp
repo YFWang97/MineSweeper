@@ -52,7 +52,7 @@ int initialize() {
         return -1;
     }
 
-    gFont = TTF_OpenFont("Ubuntu-L.ttf", 15);
+    gFont = TTF_OpenFont("font/Ubuntu-L.ttf", 15);
 
     if (gFont == NULL) {
         SDL_ERROR_MSG("TTF: Failed to load font");
