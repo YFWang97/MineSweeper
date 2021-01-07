@@ -3,7 +3,7 @@
 
 #include "defines.h"
 
-int initialize();
+int initialize_sdl();
 
 int initialize_img();
 

@@ -19,6 +19,10 @@ bool Button::inside(int x, int y) {
     return false;
 }
 
+void Button::set_pos_x(int x) {
+	rect.x = x;
+}
+
 void Button::click() {
     texture = selectedTexture;
 }

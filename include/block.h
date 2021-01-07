@@ -9,9 +9,11 @@ class Block {
 		Coordinate topleft;
 		SDL_Rect rect;
         int num;
-        bool mine;
-        bool marked;
-        bool clicked;
+		bool mine;
+        bool flaged;
+        bool revealed;
+		bool exploded;
+		bool initialized;
 
 	public:
 		Block(SDL_Texture* texture_, Coordinate topleft_, int row_, int col_);
@@ -23,14 +25,22 @@ class Block {
 
         void set_mine();
         void set_num();
-        int get_mine();
+		bool get_mine();
         int get_num();
 
-        void click();
-        bool get_clicked();
+		void set_init();
+		bool get_init();
 
-        void toggle_mark();
-        bool get_marked();
+		void explode(bool mode);
+
+        void reveal();
+        bool get_revealed();
+
+        void toggle_flag();
+        bool get_flaged();
+
+		void set_pendingReveal();
+		void unset_pendingReveal();
 
         void reset();
 

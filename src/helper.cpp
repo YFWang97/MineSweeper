@@ -5,6 +5,8 @@ SDL_Window* gWindow;
 TTF_Font* gFont = NULL;
 
 SDL_Texture* mineTexture;
+SDL_Texture* mineRevealTexture;
+SDL_Texture* mineWrongTexture;
 SDL_Texture* plainTexture;
 SDL_Texture* flagTexture;
 SDL_Texture* baseTexture;
@@ -14,7 +16,7 @@ SDL_Texture* numTexture[8];
 SDL_Texture* selectedTexture;
 SDL_Texture* releasedTexture;
 
-int initialize() {
+int initialize_sdl() {
 	if(SDL_Init(SDL_INIT_VIDEO) < 0) {
 		SDL_ERROR_MSG("SDL: Failed to initialize");
 		return -1;
@@ -38,7 +40,8 @@ int initialize() {
 
 	SDL_GetCurrentDisplayMode(0, &current);
 
-	gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED);
+	//gRenderer = SDL_CreateRenderer(gWindow, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
 	
 	if (gRenderer == NULL) {
 		SDL_ERROR_MSG("SDL: Failed to create renderer");
@@ -68,6 +71,12 @@ int initialize_img() {
 
     mineTexture = load_img("img/mine.png");
     if (mineTexture == NULL) {return -1;}
+
+    mineRevealTexture = load_img("img/mineReveal.png");
+    if (mineRevealTexture == NULL) {return -1;}
+
+    mineWrongTexture = load_img("img/mineWrong.png");
+    if (mineWrongTexture == NULL) {return -1;}
 
     flagTexture = load_img("img/flag.png");
     if (flagTexture == NULL) {return -1;}

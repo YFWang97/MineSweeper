@@ -17,6 +17,8 @@ class Button {
 
         bool inside(int x, int y);
 
+		void set_pos_x(int x);
+
         void click();
         void release();
 
