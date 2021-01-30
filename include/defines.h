@@ -2,6 +2,7 @@
 #define DEFINE_H
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_render.h>
 #if __linux__
 #include <SDL2/SDL_image.h>
 #include <SDL2/SDL_ttf.h>
