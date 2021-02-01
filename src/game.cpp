@@ -167,23 +167,22 @@ void button_action(Command command) {
 	}
 }
 
-void tile_action(Command command) {
+vector<RevealedBlock> tile_action(Command command) {
+	vector<RevealedBlock> revealedBlocksVec;
 	if (command.commandExecution == 0 ||
 		command.commandExecution == CMD_EXEC_BUTTON_ACTION ||
 		gameStatus == STATUS_GAME_OVER ||
 		gameStatus == STATUS_GAME_WIN) {
-		return;
+		return revealedBlocksVec;
 	}
 
-	//mouseClicked = false;
 	int rowNum = command.tileCoord.y;
 	int colNum = command.tileCoord.x;
-	if (rowNum >= levelSize[gameLevel].first || colNum >= levelSize[gameLevel].second) return;
+	if (rowNum >= levelSize[gameLevel].first || colNum >= levelSize[gameLevel].second) return revealedBlocksVec;
 
 	Block* curBlock = blockVec[rowNum][colNum];
 
 	if ((command.commandExecution & CMD_EXEC_FLAG_ONE_TILE) == CMD_EXEC_FLAG_ONE_TILE) {
-		//mouseFlagOneTile = false;
 
 		if (flagedNum < mineTotal[gameLevel] && 
 			curBlock->get_revealed() == false &&
@@ -210,7 +209,7 @@ void tile_action(Command command) {
 			if (curBlock->get_mine()) {
 				gameStatus = STATUS_GAME_OVER;
 				curBlock->explode(1);
-				return;
+				return revealedBlocksVec;
 			}
 
 			if (curBlock->get_flaged()) {
@@ -223,7 +222,7 @@ void tile_action(Command command) {
 			Block* unflagedMine;
 			//If this is not a revealed tile with a number geater than 0, do nothing
 			if (curBlock->get_num() == 0 || !curBlock->get_revealed()) {
-				return;
+				return revealedBlocksVec;
 			}
 			for (int row = -1; row <= 1; row++) {
 				int newRow = rowNum + row;
@@ -249,16 +248,17 @@ void tile_action(Command command) {
 				if (hasUnflagedMine) {
 					gameStatus = STATUS_GAME_OVER;
 					unflagedMine->explode(1);
-					return;
+					return revealedBlocksVec;
 				}
 			} else { //Number does not match, do nothing
-				return;
+				return revealedBlocksVec;
 			}
 		}
 
 		//Use revealed as a visited flga to avoid infinite loop
 		for (auto& block : pendingQ) {
 			block->reveal();
+			revealedBlocksVec.push_back({{block->col, block->row}, block->get_num()});
 		}
 
 		while (!pendingQ.empty()) {
@@ -271,13 +271,15 @@ void tile_action(Command command) {
 						int newCol = head->col + col;
 						if (newCol < 0 || newCol >= levelSize[gameLevel].second) continue;
 						if (newCol == head->col && newRow == head->row) continue;
-						if (blockVec[newRow][newCol]->get_revealed() == false &&
-							blockVec[newRow][newCol]->get_mine() == false &&
-							blockVec[newRow][newCol]->get_flaged() == false &&
-							blockVec[newRow][newCol]->get_init() == true) {
+						Block* tempBlock = blockVec[newRow][newCol]; 
+						if (tempBlock->get_revealed() == false &&
+							tempBlock->get_mine() == false &&
+							tempBlock->get_flaged() == false &&
+							tempBlock->get_init() == true) {
 
-							pendingQ.push_back(blockVec[newRow][newCol]);
-							blockVec[newRow][newCol]->reveal();
+							pendingQ.push_back(tempBlock);
+							tempBlock->reveal();
+							revealedBlocksVec.push_back({{tempBlock->col, tempBlock->row}, tempBlock->get_num()});
 						}
 					}
 				}
@@ -285,7 +287,7 @@ void tile_action(Command command) {
 			pendingQ.pop_front();
 		}
 	}
-    return;
+    return revealedBlocksVec;
 }
 
 void set_new_board() {

@@ -1,5 +1,5 @@
 #ifndef GAME_H
-#define GMAE_H
+#define GAME_H
 
 #include "defines.h"
 #include "helper.h"
@@ -15,7 +15,7 @@ Command proccess_mouse_event();
 
 void button_action(Command command);
 
-void tile_action(Command command);
+vector<RevealedBlock> tile_action(Command command);
 
 void set_new_board();
 

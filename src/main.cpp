@@ -11,6 +11,8 @@ int main (void) {
 
 	initialize_game();
 
+	vector<RevealedBlock> newRevealedBlocks;
+
 	//Main Game Loop
 	while (!gameQuit) {
 
@@ -23,7 +25,7 @@ int main (void) {
 
 		set_new_board();
 
-		tile_action(command);
+		newRevealedBlocks = tile_action(command);
 
 		game_status_check();        
 

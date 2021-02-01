@@ -83,6 +83,12 @@ typedef struct command {
 	}
 } Command;
 
+//Simplified version of the block info
+typedef struct revealedBlock {
+	Coordinate coord;
+	int num;
+} RevealedBlock;
+
 extern SDL_Renderer* gRenderer;
 extern SDL_Window* gWindow;
 extern SDL_Texture* mineTexture;
