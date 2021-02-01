@@ -1,15 +1,34 @@
 #include "game.h"
 
 
+Button* buttons[NUM_OF_BUTTONS];
 vector<vector<Block*>> blockVec;
 vector<Block*> mineVec;
 
 vector<Block*> pendingRevealVec;
 
-//Game Status Params
+//Game Status Control
+bool gameQuit;
+
+uint8_t gameStatus;
+
+queue<MouseEvent> mouseEventQ;
+uint32_t prevMouseState = 0;
+bool mouseWaitingFirstReveal;
+bool mousePressed = false;
+
+//Previous Tile Selection Coordinate
+Coordinate prevTileCoord = {-1, -1};
+
+//Game Status Vars
 int remainingTotal;
 int flagedNum;
 int flagedNumOld;
+
+int timer;
+int timerOld;
+int initTime;
+bool timerRunning;
 
 int gameLevel;
 int prevGameLevel;
@@ -23,14 +42,10 @@ SDL_Rect counterRect;
 int counterH, counterW;
 SDL_Texture* flagedNumTexture;
 
-int timer;
-int timerOld;
-int initTime;
-bool timerRunning;
 SDL_Rect timerRect;
 int timerH, timerW;
 SDL_Texture* timerTexture;
-queue<MouseEvent> mouseEventQ;
+
 void collect_mouse_event() {
 	SDL_Event e;
 	while (SDL_PollEvent(&e) != 0) {
@@ -54,50 +69,19 @@ void collect_mouse_event() {
 	}
 }
 
-uint32_t prevMouseState = 0;
-//Mouse Commands - Execution
-//These signals are asserted by mouse processing
-//and deasserted by action logic after action performed
-bool mouseClicked;
-bool mouseRevealOneTile;
-bool mouseFlagOneTile;
-bool mouseRevealSurrTiles;
-
-//Mouse Commands - Display
-//These signals are asserted and deasserted by mouse processing
-//Since they control display unit directly
-bool mouseGrayOneTile;
-bool mouseGraySurrTiles;
-//Both real target changes or a click on a target can assert this signal
-//This signal controls when we gray tiles
-bool mouseTileTargetChanged;
-
-bool mouseButtonAction;
-bool mouseWaitingFirstReveal;
-bool mouseFirstReveal;
-Coordinate firstRevealCoord;
-
-Coordinate revealedMineCoord;
-
-//Game Status Control
-bool gameQuit;
-bool gameOver;
-bool gameWin;
-bool gameNewBoard;
-
-//Tile Selection Coordinate
-Coordinate tileCoord;
-Coordinate prevTileCoord = {-1, -1};
-Coordinate mouseCoord;
-
-void proccess_mouse_event() {
+Command proccess_mouse_event() {
+	Command newCommand;
+	newCommand.commandDisplay = 0;
+	newCommand.commandExecution = 0;
 	if (!mouseEventQ.empty()) {
 		mouseEvent newMouseEvent = mouseEventQ.front();
 		mouseEventQ.pop();
 		uint32_t newMouseState = newMouseEvent.state;
 		uint32_t newMouseType = newMouseEvent.type;
-		mouseCoord = newMouseEvent.coord;
+		Coordinate mouseCoord = newMouseEvent.coord;
 
+		newCommand.mouseCoord = mouseCoord;
+		newCommand.tileCoord = mouseCoord.translate();
 		//cout << newMouseEvent << endl;
 
 		//If type is motion only
@@ -114,49 +98,42 @@ void proccess_mouse_event() {
 		   	
 			if (prevMouseState == 0 && 
 				newMouseState == 1) {
-				mouseClicked = false;
-				mouseButtonAction = true;
+				//In button action, all other execution commands will be deasserted
+				newCommand.commandExecution = CMD_EXEC_BUTTON_ACTION;
 			}
-			mouseGrayOneTile = false;
-			mouseGraySurrTiles = false;
-			mouseTileTargetChanged = true;
+			newCommand.commandDisplay = CMD_DISP_TARGET_CHANGED;
 			prevMouseState = 0;
 			newMouseState = 0;
 		} else {
 			if (newMouseType == SDL_QUIT) {
 				gameQuit = true;
 			} else {
-				//Record the tileCoord only in game region
-				tileCoord = mouseCoord.translate();
 				if (newMouseType == SDL_MOUSEMOTION) {
-					if (!(tileCoord == prevTileCoord)) {
-						mouseTileTargetChanged = true;
-						prevTileCoord = tileCoord;
-					} else {
-						mouseTileTargetChanged = false;
+					if (!(newCommand.tileCoord == prevTileCoord)) {
+						newCommand.commandDisplay |= CMD_DISP_TARGET_CHANGED; 
+						prevTileCoord = newCommand.tileCoord;
 					}
-					mouseClicked = false;	
+					if (newMouseState == 5) newCommand.commandDisplay |= CMD_DISP_GRAY_SURR_TILES;
+					if (newMouseState == 1) newCommand.commandDisplay |= CMD_DISP_GRAY_ONE_TILE;
 				} else if (newMouseType == SDL_MOUSEBUTTONDOWN || newMouseType == SDL_MOUSEBUTTONUP) {
-					mouseClicked = true;
-					mouseTileTargetChanged = true;
-					prevTileCoord = tileCoord;
+					newCommand.commandDisplay |= CMD_DISP_TARGET_CHANGED;
+					prevTileCoord = newCommand.tileCoord;
 					if (newMouseState == 5) {
-						mouseGraySurrTiles = true;
+						newCommand.commandDisplay |= CMD_DISP_GRAY_SURR_TILES;
+						mousePressed = true;
 					} else if (prevMouseState == 0 && newMouseState == 1) {
-						mouseGrayOneTile = true;
+						newCommand.commandDisplay |= CMD_DISP_GRAY_ONE_TILE;
+						mousePressed = true;
 					} else {
-						mouseGraySurrTiles = false;
-						mouseGrayOneTile = false;
 						if (prevMouseState == 5) {
-							mouseRevealSurrTiles = true;
+							newCommand.commandExecution |= CMD_EXEC_REVEAL_SURR_TILES;
 						} else if (prevMouseState == 0 && newMouseState == 4) {
-							mouseFlagOneTile = true;
+							newCommand.commandExecution |= CMD_EXEC_FLAG_ONE_TILE;
 						} else if (prevMouseState == 1 && newMouseState == 0) {
-							mouseRevealOneTile = true;
+							newCommand.commandExecution |= CMD_EXEC_REVEAL_ONE_TILE;
 							if (mouseWaitingFirstReveal) {
 								mouseWaitingFirstReveal = false;
-								firstRevealCoord = tileCoord;
-								mouseFirstReveal = true;
+								newCommand.commandExecution |= CMD_EXEC_FIRST_REVEAL;
 								initTime = SDL_GetTicks();
 								timerRunning = true;
 							}
@@ -167,19 +144,17 @@ void proccess_mouse_event() {
 			}
 		}
 	}
+	return newCommand;
 }
 
-Button* buttons[NUM_OF_BUTTONS];
-void button_action() {
+void button_action(Command command) {
 	//Process button action only when hitting button area
-	if (mouseButtonAction == 0) return;
+	if ((command.commandExecution & CMD_EXEC_BUTTON_ACTION) == 0) return;
 
-	mouseButtonAction = false;
+	//mouseButtonAction = false;
 	for (int i = 0; i < NUM_OF_BUTTONS; i++) {
-		if (buttons[i]->inside(mouseCoord.x, mouseCoord.y)) {
-			gameOver = false;
-			gameWin = false;
-			gameNewBoard = true;
+		if (buttons[i]->inside(command.mouseCoord.x, command.mouseCoord.y)) {
+			gameStatus = STATUS_GAME_NEW_BOARD;
 			mouseWaitingFirstReveal = true;
 			if (i != gameLevel && i != RESET) {
 				buttons[gameLevel]->release();
@@ -192,20 +167,23 @@ void button_action() {
 	}
 }
 
-void tile_action() {
-	if (!mouseClicked || gameOver || gameWin) {
+void tile_action(Command command) {
+	if (command.commandExecution == 0 ||
+		command.commandExecution == CMD_EXEC_BUTTON_ACTION ||
+		gameStatus == STATUS_GAME_OVER ||
+		gameStatus == STATUS_GAME_WIN) {
 		return;
 	}
 
-	mouseClicked = false;
-	int rowNum = tileCoord.y;
-	int colNum = tileCoord.x;
+	//mouseClicked = false;
+	int rowNum = command.tileCoord.y;
+	int colNum = command.tileCoord.x;
 	if (rowNum >= levelSize[gameLevel].first || colNum >= levelSize[gameLevel].second) return;
 
 	Block* curBlock = blockVec[rowNum][colNum];
 
-	if (mouseFlagOneTile) {
-		mouseFlagOneTile = false;
+	if ((command.commandExecution & CMD_EXEC_FLAG_ONE_TILE) == CMD_EXEC_FLAG_ONE_TILE) {
+		//mouseFlagOneTile = false;
 
 		if (flagedNum < mineTotal[gameLevel] && 
 			curBlock->get_revealed() == false &&
@@ -225,14 +203,13 @@ void tile_action() {
 		curBlock->toggle_flag();
 	}
 
-	if (mouseRevealOneTile || mouseRevealSurrTiles) {
+	if ((command.commandExecution & CMD_EXEC_REVEAL_ONE_TILE) == CMD_EXEC_REVEAL_ONE_TILE ||
+		(command.commandExecution & CMD_EXEC_REVEAL_SURR_TILES) == CMD_EXEC_REVEAL_SURR_TILES) {
 		deque<Block*> pendingQ;
-		if (mouseRevealOneTile) {
-			mouseRevealOneTile = false;
+		if ((command.commandExecution & CMD_EXEC_REVEAL_ONE_TILE) == CMD_EXEC_REVEAL_ONE_TILE) {
 			if (curBlock->get_mine()) {
-				gameOver = true;
-				revealedMineCoord = tileCoord;
-				curBlock->reveal();
+				gameStatus = STATUS_GAME_OVER;
+				curBlock->explode(1);
 				return;
 			}
 
@@ -240,10 +217,10 @@ void tile_action() {
 				flagedNum--;
 			}
 			pendingQ.push_back(curBlock);
-		} else if (mouseRevealSurrTiles) {
-			mouseRevealSurrTiles = false;
+		} else if ((command.commandExecution & CMD_EXEC_REVEAL_SURR_TILES) == CMD_EXEC_REVEAL_SURR_TILES) {
 			int numOfSurrFlags = 0;
 			bool hasUnflagedMine = false;
+			Block* unflagedMine;
 			//If this is not a revealed tile with a number geater than 0, do nothing
 			if (curBlock->get_num() == 0 || !curBlock->get_revealed()) {
 				return;
@@ -258,7 +235,7 @@ void tile_action() {
 					Block* tempBlock = blockVec[newRow][newCol];
 					if (tempBlock->get_mine() && !tempBlock->get_flaged()) {
 						hasUnflagedMine = true;
-						revealedMineCoord = {newCol, newRow};
+						unflagedMine = tempBlock;
 					}
 					if (tempBlock->get_flaged()) {
 						numOfSurrFlags++;
@@ -270,7 +247,8 @@ void tile_action() {
 			}
 			if (numOfSurrFlags == curBlock->get_num()) {
 				if (hasUnflagedMine) {
-					gameOver = true;
+					gameStatus = STATUS_GAME_OVER;
+					unflagedMine->explode(1);
 					return;
 				}
 			} else { //Number does not match, do nothing
@@ -312,7 +290,7 @@ void tile_action() {
 
 void set_new_board() {
 	//Only set new board when needed
-	if (gameNewBoard == 0) return;
+	if ((gameStatus & STATUS_GAME_NEW_BOARD) == 0) return;
 
 	//ScreenRect is used for WIN/GAMEOVER sign
     screenRect = {0, 0, windowSize[gameLevel].first, windowSize[gameLevel].second};
@@ -337,9 +315,7 @@ void set_new_board() {
 		}	
 		SDL_SetWindowSize(gWindow, windowSize[gameLevel].first, windowSize[gameLevel].second);
 	}
-	gameWin = false;
-	gameOver = false;
-	gameNewBoard = false;
+	gameStatus = 0;
 
 	remainingTotal = mineTotal[gameLevel];
 	flagedNum = 0;
@@ -348,9 +324,9 @@ void set_new_board() {
 	timer = 0;
 }
 
-void set_mines() {
+void set_mines(Command command) {
 	//Only set mines at the first reveal
-	if (mouseFirstReveal == 0) return;
+	if ((command.commandExecution & CMD_EXEC_FIRST_REVEAL) == 0) return;
 
 	mineVec.clear();
 
@@ -359,7 +335,7 @@ void set_mines() {
 		int mineRow = rand() % levelSize[gameLevel].first;
 		int mineCol = rand() % levelSize[gameLevel].second;
 
-		bool aroundFirstReveal = (abs(mineRow - firstRevealCoord.y) <= 1) && (abs(mineCol - firstRevealCoord.x) <= 1);
+		bool aroundFirstReveal = (abs(mineRow - command.tileCoord.y) <= 1) && (abs(mineCol - command.tileCoord.x) <= 1);
 
 		//Do not put on existing mine
 		//Do not put on the surronding of the frst reveal
@@ -388,7 +364,6 @@ void set_mines() {
 			blockVec[row][col]->set_init();
 		}
 	}
-	mouseFirstReveal = false;
 }
 
 
@@ -419,9 +394,8 @@ void initialize_game() {
 	printf("Current seed is %d\n", seed);
 
 	//Get a new board
-	gameNewBoard = true;
+	gameStatus = STATUS_GAME_NEW_BOARD;
 	mouseWaitingFirstReveal = true;
-	mouseFirstReveal = false;
 
 	timerRunning = false;
 
@@ -430,20 +404,19 @@ void initialize_game() {
 
 
 void game_status_check() {
-	if (remainingTotal == 0) gameWin = true;
-	if (gameNewBoard) {
+	if (remainingTotal == 0) gameStatus = STATUS_GAME_WIN;
+	if ((gameStatus & STATUS_GAME_NEW_BOARD) == STATUS_GAME_NEW_BOARD) {
 		set_new_board();
 	}
-	if (gameOver) {
+	if ((gameStatus & STATUS_GAME_OVER) == STATUS_GAME_OVER) {
 		for (auto& mine : mineVec) {
-			if (revealedMineCoord.y == mine->row && revealedMineCoord.x == mine->col) {
-				mine->explode(1);
-			} else {
+			if (mine->get_exploded() == false) {
 				mine->explode(0);
 			}	
 		}
 	}
-	if (gameWin || gameOver) {
+	if ((gameStatus & STATUS_GAME_WIN) == STATUS_GAME_WIN ||
+		(gameStatus & STATUS_GAME_OVER) == STATUS_GAME_OVER) {
 		timerRunning = false;
 	}
 
@@ -453,26 +426,33 @@ void game_status_check() {
 
 }
 
-void display() {
-	if (mouseTileTargetChanged && !(gameWin || gameOver)) {
-		mouseTileTargetChanged = false;
+void display(Command command) {
+	//Update pending reveal list rules:
+	//First need to ensure the mouse is pressed
+	//Second it has a TARGET CHANGED
+	//In that case, can refresh the pending reveal list and append new if applicable
+	//Based on DISP_GRAY_ONE_TILE and DISP_GRAY_SURR_TILES CMD
+	if ((command.commandDisplay & CMD_DISP_TARGET_CHANGED) == CMD_DISP_TARGET_CHANGED &&
+		mousePressed &&
+		((gameStatus & STATUS_GAME_WIN) == 0) &&
+		((gameStatus & STATUS_GAME_OVER) == 0)) {
 		for (auto& block : pendingRevealVec) {
 			block->unset_pendingReveal();
 		}
 		pendingRevealVec.clear();
 
-		if (mouseGrayOneTile) {
-			Block* curBlock = blockVec[tileCoord.y][tileCoord.x];
+		if ((command.commandDisplay & CMD_DISP_GRAY_ONE_TILE) == CMD_DISP_GRAY_ONE_TILE) {
+			Block* curBlock = blockVec[command.tileCoord.y][command.tileCoord.x];
 			curBlock->set_pendingReveal();
 			pendingRevealVec.push_back(curBlock);
 		} 
 
-		if (mouseGraySurrTiles) {
+		if ((command.commandDisplay & CMD_DISP_GRAY_SURR_TILES) == CMD_DISP_GRAY_SURR_TILES) {
 			for (int row = -1; row <= 1; row++) {
-				int newRow = tileCoord.y + row;
+				int newRow = command.tileCoord.y + row;
 				if (newRow < 0 || newRow >= levelSize[gameLevel].first) continue;
 				for (int col = -1; col <= 1; col++) {
-					int newCol = tileCoord.x + col;
+					int newCol = command.tileCoord.x + col;
 					if (newCol < 0 || newCol >= levelSize[gameLevel].second) continue;
 					Block* curBlock = blockVec[newRow][newCol];
 					if (!curBlock->get_flaged() && !curBlock->get_revealed()) {
@@ -489,7 +469,8 @@ void display() {
 	for (int row = 0; row < levelSize[gameLevel].first; row++) {
 		for (int col = 0; col < levelSize[gameLevel].second; col++) {
 			Block* curBlock = blockVec[row][col];
-			if (gameOver && curBlock->get_flaged() && !curBlock->get_mine()) {
+			if ((gameStatus & STATUS_GAME_OVER) == STATUS_GAME_OVER && 
+				curBlock->get_flaged() && !curBlock->get_mine()) {
 				curBlock->set_texture(mineWrongTexture);
 			}
 			curBlock->draw();
@@ -532,13 +513,13 @@ void display() {
         SDL_ERROR_MSG("SDL: Failed to copy texture to renderer");
     }
 
-    if (gameOver) {
+    if ((gameStatus & STATUS_GAME_OVER) == STATUS_GAME_OVER) {
         if (SDL_RenderCopy(gRenderer, overTexture, NULL, &screenRect)) {
             SDL_ERROR_MSG("SDL: Failed to copy texture to renderer");
         }
     }
 
-    if (gameWin) {
+    if ((gameStatus & STATUS_GAME_WIN) == STATUS_GAME_WIN) {
         if (SDL_RenderCopy(gRenderer, winTexture, NULL, &screenRect)) {
             SDL_ERROR_MSG("SDL: Failed to copy texture to renderer");
         }

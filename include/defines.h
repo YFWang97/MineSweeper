@@ -69,6 +69,19 @@ typedef struct mouseEvent {
 	}
 } MouseEvent;
 
+typedef struct command {
+	Coordinate tileCoord;
+	Coordinate mouseCoord;
+	uint8_t commandExecution;
+	uint8_t commandDisplay;
+	friend ostream& operator<<(ostream&os, const struct command& c) {
+		os << "Tile Coord: x:" << std::dec << c.tileCoord.x << ", y:" << c.tileCoord.y << endl;
+		os << "Mouse Coord: x:" << std::dec << c.mouseCoord.x << ", y:" << c.mouseCoord.y << endl;
+		os << "EXEC: " << unsigned(c.commandExecution) << endl;
+		os << "DISP: " << unsigned(c.commandDisplay) << endl;
+		return os;
+	}
+} Command;
 
 extern SDL_Renderer* gRenderer;
 extern SDL_Window* gWindow;

@@ -11,26 +11,25 @@ int main (void) {
 
 	initialize_game();
 
-
 	//Main Game Loop
 	while (!gameQuit) {
 
 		collect_mouse_event();
-		proccess_mouse_event();
-		
-		set_mines();
+		Command command = proccess_mouse_event();
 
-		button_action();
+		set_mines(command);
+
+		button_action(command);
 
 		set_new_board();
 
-		tile_action();
+		tile_action(command);
 
 		game_status_check();        
 
 		SDL_RenderClear(gRenderer);
        
-		display();
+		display(command);
 
 		SDL_RenderPresent(gRenderer);
 

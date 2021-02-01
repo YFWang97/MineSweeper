@@ -51,6 +51,8 @@ void Block::explode(bool mode) {
 	}
 }
 
+bool Block::get_exploded() {return exploded;}
+
 
 void Block::reveal() {
     revealed = true;

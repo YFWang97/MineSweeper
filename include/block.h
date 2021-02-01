@@ -32,6 +32,7 @@ class Block {
 		bool get_init();
 
 		void explode(bool mode);
+		bool get_exploded();
 
         void reveal();
         bool get_revealed();
