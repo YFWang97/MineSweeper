@@ -14,7 +14,6 @@ uint8_t gameStatus;
 
 queue<MouseEvent> mouseEventQ;
 uint32_t prevMouseState = 0;
-bool mouseWaitingFirstReveal;
 bool mousePressed = false;
 
 //Previous Tile Selection Coordinate
@@ -131,8 +130,9 @@ Command proccess_mouse_event() {
 							newCommand.commandExecution |= CMD_EXEC_FLAG_ONE_TILE;
 						} else if (prevMouseState == 1 && newMouseState == 0) {
 							newCommand.commandExecution |= CMD_EXEC_REVEAL_ONE_TILE;
-							if (mouseWaitingFirstReveal) {
-								mouseWaitingFirstReveal = false;
+							if ((gameStatus & STATUS_GAME_WAIT_TO_START) == STATUS_GAME_WAIT_TO_START) {
+								//Unset the wait to start status but maintain the new board status
+								gameStatus &= (~STATUS_GAME_WAIT_TO_START);
 								newCommand.commandExecution |= CMD_EXEC_FIRST_REVEAL;
 								initTime = SDL_GetTicks();
 								timerRunning = true;
@@ -154,8 +154,7 @@ void button_action(Command command) {
 	//mouseButtonAction = false;
 	for (int i = 0; i < NUM_OF_BUTTONS; i++) {
 		if (buttons[i]->inside(command.mouseCoord.x, command.mouseCoord.y)) {
-			gameStatus = STATUS_GAME_NEW_BOARD;
-			mouseWaitingFirstReveal = true;
+			gameStatus = STATUS_GAME_NEW_BOARD | STATUS_GAME_WAIT_TO_START;
 			if (i != gameLevel && i != RESET) {
 				buttons[gameLevel]->release();
 				buttons[i]->click();
@@ -171,8 +170,8 @@ vector<RevealedBlock> tile_action(Command command) {
 	vector<RevealedBlock> revealedBlocksVec;
 	if (command.commandExecution == 0 ||
 		command.commandExecution == CMD_EXEC_BUTTON_ACTION ||
-		gameStatus == STATUS_GAME_OVER ||
-		gameStatus == STATUS_GAME_WIN) {
+		(gameStatus & STATUS_GAME_OVER) == STATUS_GAME_OVER ||
+		(gameStatus & STATUS_GAME_WIN) == STATUS_GAME_WIN) {
 		return revealedBlocksVec;
 	}
 
@@ -317,7 +316,7 @@ void set_new_board() {
 		}	
 		SDL_SetWindowSize(gWindow, windowSize[gameLevel].first, windowSize[gameLevel].second);
 	}
-	gameStatus = 0;
+	gameStatus &= (~STATUS_GAME_NEW_BOARD);
 
 	remainingTotal = mineTotal[gameLevel];
 	flagedNum = 0;
@@ -396,8 +395,7 @@ void initialize_game() {
 	printf("Current seed is %d\n", seed);
 
 	//Get a new board
-	gameStatus = STATUS_GAME_NEW_BOARD;
-	mouseWaitingFirstReveal = true;
+	gameStatus = STATUS_GAME_NEW_BOARD | STATUS_GAME_WAIT_TO_START;
 
 	timerRunning = false;
 

@@ -27,17 +27,8 @@ void game_status_check();
 
 void display(Command command);
 
-////////// GLOBAL VARIABLES //////////
 
-extern bool gameQuit;
-
-////////// PARAMS & VARIABLES //////////
-
-////////// STATUS & COMMANDS DEFINES //////////
-#define STATUS_GAME_OVER			0b0001
-#define STATUS_GAME_WIN				0b0010
-#define STATUS_GAME_NEW_BOARD		0b0100
-
+////////// COMMANDS DEFINES //////////
 
 //Mouse Commands - Execution
 //These signals are asserted by mouse processing

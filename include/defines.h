@@ -104,4 +104,16 @@ extern SDL_Texture* selectedTexture;
 extern SDL_Texture* releasedTexture;
 extern SDL_Texture* flagedNumTexture;
 
+////////// GLOBAL VARIABLES //////////
+
+extern bool gameQuit;
+extern uint8_t gameStatus;
+extern pair<int, int> levelSize[NUM_OF_BUTTONS - 1];
+
+
+////////// GAME STATUS DEFINES //////////
+#define STATUS_GAME_OVER			0b0001
+#define STATUS_GAME_WIN				0b0010
+#define STATUS_GAME_NEW_BOARD		0b0100
+#define STATUS_GAME_WAIT_TO_START	0b1000
 #endif
