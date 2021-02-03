@@ -147,14 +147,15 @@ Command proccess_mouse_event() {
 	return newCommand;
 }
 
-void button_action(Command command) {
+void button_action(Command& command) {
 	//Process button action only when hitting button area
 	if ((command.commandExecution & CMD_EXEC_BUTTON_ACTION) == 0) return;
 
 	//mouseButtonAction = false;
 	for (int i = 0; i < NUM_OF_BUTTONS; i++) {
 		if (buttons[i]->inside(command.mouseCoord.x, command.mouseCoord.y)) {
-			gameStatus = STATUS_GAME_NEW_BOARD | STATUS_GAME_WAIT_TO_START;
+			gameStatus = STATUS_GAME_WAIT_TO_START;
+			command.commandExecution |= CMD_EXEC_NEW_BOARD;
 			if (i != gameLevel && i != RESET) {
 				buttons[gameLevel]->release();
 				buttons[i]->click();
@@ -289,9 +290,9 @@ vector<RevealedBlock> tile_action(Command command) {
     return revealedBlocksVec;
 }
 
-void set_new_board() {
+void set_new_board(Command command) {
 	//Only set new board when needed
-	if ((gameStatus & STATUS_GAME_NEW_BOARD) == 0) return;
+	if ((command.commandExecution & CMD_EXEC_NEW_BOARD) == 0) return;
 
 	//ScreenRect is used for WIN/GAMEOVER sign
     screenRect = {0, 0, windowSize[gameLevel].first, windowSize[gameLevel].second};
@@ -316,7 +317,6 @@ void set_new_board() {
 		}	
 		SDL_SetWindowSize(gWindow, windowSize[gameLevel].first, windowSize[gameLevel].second);
 	}
-	gameStatus &= (~STATUS_GAME_NEW_BOARD);
 
 	remainingTotal = mineTotal[gameLevel];
 	flagedNum = 0;
@@ -395,19 +395,18 @@ void initialize_game() {
 	printf("Current seed is %d\n", seed);
 
 	//Get a new board
-	gameStatus = STATUS_GAME_NEW_BOARD | STATUS_GAME_WAIT_TO_START;
+	gameStatus = STATUS_GAME_WAIT_TO_START;
 
 	timerRunning = false;
 
-	set_new_board();
+	Command tmpCommand;
+	tmpCommand.commandExecution = CMD_EXEC_NEW_BOARD;
+	set_new_board(tmpCommand);
 }
 
 
 void game_status_check() {
 	if (remainingTotal == 0) gameStatus = STATUS_GAME_WIN;
-	if ((gameStatus & STATUS_GAME_NEW_BOARD) == STATUS_GAME_NEW_BOARD) {
-		set_new_board();
-	}
 	if ((gameStatus & STATUS_GAME_OVER) == STATUS_GAME_OVER) {
 		for (auto& mine : mineVec) {
 			if (mine->get_exploded() == false) {
@@ -525,4 +524,16 @@ void display(Command command) {
         }
     } 
 
+}
+
+void quit_game() {
+	for (auto& button : buttons) {
+		delete(button);
+	}
+
+    for (int row = 0; row < levelSize[HARD].first; row++) {
+        for (int col = 0; col < levelSize[HARD].second; col++) {
+			delete (blockVec[row][col]);
+        }
+    }
 }

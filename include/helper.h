@@ -13,6 +13,6 @@ int load_num();
 
 SDL_Texture* load_text(const char* text);
 
-void quit_game();
+void quit();
 
 #endif

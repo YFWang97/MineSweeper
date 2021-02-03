@@ -13,11 +13,11 @@ void collect_mouse_event();
 
 Command proccess_mouse_event();
 
-void button_action(Command command);
+void button_action(Command& command);
 
 vector<RevealedBlock> tile_action(Command command);
 
-void set_new_board();
+void set_new_board(Command command);
 
 void set_mines(Command command);
 
@@ -27,28 +27,6 @@ void game_status_check();
 
 void display(Command command);
 
-
-////////// COMMANDS DEFINES //////////
-
-//Mouse Commands - Execution
-//These signals are asserted by mouse processing
-//and deasserted by action logic after action performed
-
-//Mouse Commands - Display
-//These signals are asserted and deasserted by mouse processing
-//Since they control display unit directly
-
-#define CMD_EXEC_REVEAL_ONE_TILE	0b00000001
-#define CMD_EXEC_FLAG_ONE_TILE		0b00000010
-#define CMD_EXEC_REVEAL_SURR_TILES	0b00000100
-#define CMD_EXEC_FIRST_REVEAL		0b00001000
-#define CMD_EXEC_BUTTON_ACTION		0b00010000
-
-#define CMD_DISP_GRAY_ONE_TILE		0b00000001
-#define CMD_DISP_GRAY_SURR_TILES	0b00000010
-
-//Both real target changes or a click on a target can assert this signal
-//This signal controls when we gray tiles
-#define CMD_DISP_TARGET_CHANGED		0b00000100
+void quit_game();
 
 #endif

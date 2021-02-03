@@ -1,16 +1,26 @@
 #include "helper.h"
 #include "game.h"
+#include "solver.h"
 
-int main (void) {
+int main (int argc, char**argv) {
 
     if (initialize_sdl() || initialize_img()) {
 		ERROR_MSG("PROG: Program quits. SDL Initialization failed");
         return 0;
 	}
 
+	bool solverEnabled = false;
+
+	if (argc == 2 && strcmp(argv[1], "solver") == 0) {
+		solverEnabled = true;
+	}
 
 	initialize_game();
 
+	if (solverEnabled) {
+		initialize_solver();
+	}
+	
 	vector<RevealedBlock> newRevealedBlocks;
 
 	//Main Game Loop
@@ -19,13 +29,25 @@ int main (void) {
 		collect_mouse_event();
 		Command command = proccess_mouse_event();
 
-		set_mines(command);
+		if (solverEnabled == 0) {
+			button_action(command);
+			
+			set_mines(command);
 
-		button_action(command);
+			set_new_board(command);
 
-		set_new_board();
+			tile_action(command);
+		} else {
+			Command solverCommand = solver(newRevealedBlocks, command);
+			
+			button_action(solverCommand);
+			
+			set_mines(solverCommand);
 
-		newRevealedBlocks = tile_action(command);
+			set_new_board(solverCommand);
+
+			newRevealedBlocks = tile_action(solverCommand);
+		}
 
 		game_status_check();        
 
@@ -35,10 +57,13 @@ int main (void) {
 
 		SDL_RenderPresent(gRenderer);
 
-        //SDL_Delay(1000);
+		if (solverEnabled) SDL_Delay(100);
+
 	}
 
 	quit_game();
+
+	quit();
 
 	return 0;
 }

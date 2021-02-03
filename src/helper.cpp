@@ -150,7 +150,7 @@ SDL_Texture* load_text(const char* text) {
     return texture;
 }
 
-void quit_game() {
+void quit() {
     IMG_Quit();
 	TTF_CloseFont(gFont);
     TTF_Quit();
