@@ -388,12 +388,6 @@ void initialize_game() {
         blockVec.push_back(rowVec);
     }
 
-    /* Set up the map */
-	int seed = SDL_GetTicks();
-	srand(seed);
-
-	printf("Current seed is %d\n", seed);
-
 	//Get a new board
 	gameStatus = STATUS_GAME_WAIT_TO_START;
 

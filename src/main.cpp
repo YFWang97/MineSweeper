@@ -4,16 +4,34 @@
 
 int main (int argc, char**argv) {
 
+
+	int seed;
+	if (argc >= 3) {
+		seed = stoi(argv[2]); 
+	} else {
+		seed = SDL_GetTicks();
+	}
+	srand(seed);
+
+	printf("Current seed is %d\n", seed);
+
+	bool solverEnabled = false;
+	int displayDelay = 0;
+
+	if (argc >= 2 && strcmp(argv[1], "solver") == 0) {
+		solverEnabled = true;
+		displayDelay = 100;
+	}
+
+	if (argc >= 4) {
+		displayDelay = stoi(argv[3]);
+	}
+
     if (initialize_sdl() || initialize_img()) {
 		ERROR_MSG("PROG: Program quits. SDL Initialization failed");
         return 0;
 	}
 
-	bool solverEnabled = false;
-
-	if (argc == 2 && strcmp(argv[1], "solver") == 0) {
-		solverEnabled = true;
-	}
 
 	initialize_game();
 
@@ -57,7 +75,7 @@ int main (int argc, char**argv) {
 
 		SDL_RenderPresent(gRenderer);
 
-		if (solverEnabled) SDL_Delay(100);
+		SDL_Delay(displayDelay);
 
 	}
 
