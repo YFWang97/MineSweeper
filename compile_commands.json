@@ -54,10 +54,10 @@
             "/Library/Frameworks/SDL2_ttf.framework/Headers/",
             "-o",
             "game",
-            "src/main.cpp"
+            "src/solver.cpp"
         ],
         "directory": "/Users/wang/Documents/Xcode/Projects/MineSweeper",
-        "file": "src/main.cpp"
+        "file": "src/solver.cpp"
     },
     {
         "arguments": [
@@ -84,10 +84,10 @@
             "/Library/Frameworks/SDL2_ttf.framework/Headers/",
             "-o",
             "game",
-            "src/game.cpp"
+            "src/button.cpp"
         ],
         "directory": "/Users/wang/Documents/Xcode/Projects/MineSweeper",
-        "file": "src/game.cpp"
+        "file": "src/button.cpp"
     },
     {
         "arguments": [
@@ -144,9 +144,39 @@
             "/Library/Frameworks/SDL2_ttf.framework/Headers/",
             "-o",
             "game",
-            "src/button.cpp"
+            "src/main.cpp"
         ],
         "directory": "/Users/wang/Documents/Xcode/Projects/MineSweeper",
-        "file": "src/button.cpp"
+        "file": "src/main.cpp"
+    },
+    {
+        "arguments": [
+            "g++",
+            "-c",
+            "-std=c++11",
+            "-w",
+            "-Wall",
+            "-O",
+            "-Iinclude/",
+            "-framework",
+            "SDL2",
+            "-framework",
+            "SDL2_image",
+            "-framework",
+            "SDL2_ttf",
+            "-F",
+            "/Library/Frameworks",
+            "-I",
+            "/Library/Frameworks/SDL2.framework/Headers/",
+            "-I",
+            "/Library/Frameworks/SDL2_image.framework/Headers/",
+            "-I",
+            "/Library/Frameworks/SDL2_ttf.framework/Headers/",
+            "-o",
+            "game",
+            "src/game.cpp"
+        ],
+        "directory": "/Users/wang/Documents/Xcode/Projects/MineSweeper",
+        "file": "src/game.cpp"
     }
 ]
