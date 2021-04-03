@@ -56,6 +56,14 @@ typedef struct coordinate {
 	bool operator==(const struct coordinate& coord) {
 		return (x == coord.x && y == coord.y);
 	}
+	bool operator<(const struct coordinate& coord) const {
+		if (y < coord.y) return true;
+		if (y == coord.y && x < coord.x) return true;
+		return false;
+	}
+	bool operator!=(const struct coordinate& coord) {
+		return (x != coord.x || y != coord.y);
+	}
 } Coordinate;
 
 typedef struct mouseEvent {
@@ -104,6 +112,7 @@ extern SDL_Texture* numTexture[8];
 extern SDL_Texture* selectedTexture;
 extern SDL_Texture* releasedTexture;
 extern SDL_Texture* flagedNumTexture;
+extern SDL_Texture* blockHighlightTexture;
 
 ////////// GLOBAL VARIABLES //////////
 

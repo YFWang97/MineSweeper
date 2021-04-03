@@ -255,7 +255,7 @@ vector<RevealedBlock> tile_action(Command command) {
 			}
 		}
 
-		//Use revealed as a visited flga to avoid infinite loop
+		//Use revealed as a visited flag to avoid infinite loop
 		for (auto& block : pendingQ) {
 			block->reveal();
 			revealedBlocksVec.push_back({{block->col, block->row}, block->get_num()});
@@ -369,7 +369,8 @@ void set_mines(Command command) {
 
 
 void initialize_game() {
-	gameLevel = MEDIUM;
+	gameLevel = HARD;
+	//gameLevel = MEDIUM;
 
     for (int i = 0; i < NUM_OF_BUTTONS; i++) {
         buttons[i] = new Button(levelInfo[i], {levelSize[gameLevel].second * BLOCK_WIDTH + 10, 40 + i * 30});
@@ -506,17 +507,17 @@ void display(Command command) {
         SDL_ERROR_MSG("SDL: Failed to copy texture to renderer");
     }
 
-    if ((gameStatus & STATUS_GAME_OVER) == STATUS_GAME_OVER) {
-        if (SDL_RenderCopy(gRenderer, overTexture, NULL, &screenRect)) {
-            SDL_ERROR_MSG("SDL: Failed to copy texture to renderer");
-        }
-    }
+    //if ((gameStatus & STATUS_GAME_OVER) == STATUS_GAME_OVER) {
+    //    if (SDL_RenderCopy(gRenderer, overTexture, NULL, &screenRect)) {
+    //        SDL_ERROR_MSG("SDL: Failed to copy texture to renderer");
+    //    }
+    //}
 
-    if ((gameStatus & STATUS_GAME_WIN) == STATUS_GAME_WIN) {
-        if (SDL_RenderCopy(gRenderer, winTexture, NULL, &screenRect)) {
-            SDL_ERROR_MSG("SDL: Failed to copy texture to renderer");
-        }
-    } 
+    //if ((gameStatus & STATUS_GAME_WIN) == STATUS_GAME_WIN) {
+    //    if (SDL_RenderCopy(gRenderer, winTexture, NULL, &screenRect)) {
+    //        SDL_ERROR_MSG("SDL: Failed to copy texture to renderer");
+    //    }
+    //} 
 
 }
 

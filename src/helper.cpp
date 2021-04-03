@@ -15,6 +15,7 @@ SDL_Texture* winTexture;
 SDL_Texture* numTexture[8];
 SDL_Texture* selectedTexture;
 SDL_Texture* releasedTexture;
+SDL_Texture* blockHighlightTexture;
 
 int initialize_sdl() {
 	if(SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -95,6 +96,9 @@ int initialize_img() {
     
     releasedTexture = load_img("img/released.png");
     if (releasedTexture == NULL) {return -1;}
+
+	blockHighlightTexture = load_img("img/blockHighlight.png");
+	if (blockHighlightTexture == NULL) {return -1;}
 
     if (load_num()) {return -1;}
     return 0;
