@@ -11,6 +11,8 @@
 #include <SDL2_ttf/SDL_ttf.h>
 #endif
 #include <iostream>
+#include <sstream>
+#include <fstream>
 #include <vector>
 #include <string>
 #include <math.h>
@@ -53,7 +55,7 @@ typedef struct coordinate {
 		int newY = floor((double)y / BLOCK_WIDTH);
 		return {newX, newY};
 	}
-	bool operator==(const struct coordinate& coord) {
+	bool operator==(const struct coordinate& coord) const {
 		return (x == coord.x && y == coord.y);
 	}
 	bool operator<(const struct coordinate& coord) const {
@@ -61,10 +63,19 @@ typedef struct coordinate {
 		if (y == coord.y && x < coord.x) return true;
 		return false;
 	}
-	bool operator!=(const struct coordinate& coord) {
+	bool operator!=(const struct coordinate& coord) const{
 		return (x != coord.x || y != coord.y);
 	}
 } Coordinate;
+
+namespace std {
+	template <>
+	struct hash<struct coordinate> {
+		size_t operator() (const struct coordinate& coord) const {
+			return hash<int>()(coord.x) ^ hash<int>()(coord.y);
+		}
+	};
+}
 
 typedef struct mouseEvent {
 	Coordinate coord;
@@ -119,6 +130,7 @@ extern SDL_Texture* blockHighlightTexture;
 extern bool gameQuit;
 extern uint8_t gameStatus;
 extern pair<int, int> levelSize[NUM_OF_BUTTONS - 1];
+extern int mineTotal[NUM_OF_BUTTONS - 1];
 extern int gameLevel;
 
 

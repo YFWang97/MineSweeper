@@ -171,6 +171,7 @@ vector<RevealedBlock> tile_action(Command command) {
 	vector<RevealedBlock> revealedBlocksVec;
 	if (command.commandExecution == 0 ||
 		command.commandExecution == CMD_EXEC_BUTTON_ACTION ||
+		command.commandExecution == CMD_EXEC_NEW_BOARD || 
 		(gameStatus & STATUS_GAME_OVER) == STATUS_GAME_OVER ||
 		(gameStatus & STATUS_GAME_WIN) == STATUS_GAME_WIN) {
 		return revealedBlocksVec;
@@ -332,22 +333,31 @@ void set_mines(Command command) {
 	mineVec.clear();
 
 	int setNum = mineTotal[gameLevel];
-	while (setNum > 0) {
-		int mineRow = rand() % levelSize[gameLevel].first;
-		int mineCol = rand() % levelSize[gameLevel].second;
+	bool mineBoardReadFromFile = false;
 
-		bool aroundFirstReveal = (abs(mineRow - command.tileCoord.y) <= 1) && (abs(mineCol - command.tileCoord.x) <= 1);
+	if (mineBoardReadFromFile) {
+		ifstream mineBoardFile;
+		mineBoardFile.open("mine.board");
 
-		//Do not put on existing mine
-		//Do not put on the surronding of the frst reveal
-		if (blockVec[mineRow][mineCol]->get_mine()) {
-			continue;
-		} else if (aroundFirstReveal) {
-			continue;
-		} else {
-			blockVec[mineRow][mineCol]->set_mine();
+		string oneline;
+		getline(mineBoardFile, oneline);
+		
+		stringstream ss(oneline);
+
+		while (setNum > 0) {
+			int mineRow;
+			int mineCol;
+			ss >> mineRow;
+			ss >> mineCol;
+
 			mineVec.push_back(blockVec[mineRow][mineCol]);
+			setNum--;
+		}
 
+		for (auto& mine : mineVec) {
+			int mineRow = mine->row;
+			int mineCol = mine->col;
+			mine->set_mine();
 			for (int row = -1; row <= 1; row++) {
 				int newRow = mineRow + row;
 				if (newRow < 0 || newRow >= levelSize[gameLevel].first) continue;
@@ -357,13 +367,52 @@ void set_mines(Command command) {
 					blockVec[newRow][newCol]->set_num();
 				}
 			}
-			setNum--;
+		}
+	} else {
+		while (setNum > 0) {
+			int mineRow = rand() % levelSize[gameLevel].first;
+			int mineCol = rand() % levelSize[gameLevel].second;
+
+			bool aroundFirstReveal = (abs(mineRow - command.tileCoord.y) <= 1) && (abs(mineCol - command.tileCoord.x) <= 1);
+
+			//Do not put on existing mine
+			//Do not put on the surronding of the frst reveal
+			if (blockVec[mineRow][mineCol]->get_mine()) {
+				continue;
+			} else if (aroundFirstReveal) {
+				continue;
+			} else {
+				mineVec.push_back(blockVec[mineRow][mineCol]);
+				blockVec[mineRow][mineCol]->set_mine();
+				for (int row = -1; row <= 1; row++) {
+					int newRow = mineRow + row;
+					if (newRow < 0 || newRow >= levelSize[gameLevel].first) continue;
+					for (int col = -1; col <= 1; col++) {
+						int newCol = mineCol + col;
+						if (newCol < 0 || newCol >= levelSize[gameLevel].second) continue;
+						blockVec[newRow][newCol]->set_num();
+					}
+				}
+				setNum--;
+			}
 		}
 	}
+
 	for (int row = 0; row < levelSize[gameLevel].first; row++) {
 		for (int col = 0; col < levelSize[gameLevel].second; col++) {
 			blockVec[row][col]->set_init();
 		}
+	}
+	
+	if (!mineBoardReadFromFile) 
+	{
+		//ofstream mineBoardFile;
+		//mineBoardFile.open("mine.board", ios::app);
+		//for (auto mine : mineVec) {
+		//	mineBoardFile << mine->row << " " << mine->col << " ";
+		//}
+		//mineBoardFile << endl;
+		//mineBoardFile.close();
 	}
 }
 
