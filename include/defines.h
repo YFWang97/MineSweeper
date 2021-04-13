@@ -16,6 +16,7 @@
 #include <vector>
 #include <string>
 #include <math.h>
+#include <algorithm>
 #include <unordered_map>
 #include <unordered_set>
 #include <queue>

@@ -10,7 +10,6 @@ int main (int argc, char**argv) {
 	} else {
 		seed = SDL_GetTicks();
 	}
-	srand(seed);
 
 	printf("Current seed is %d\n", seed);
 
@@ -39,6 +38,8 @@ int main (int argc, char**argv) {
 	}
 	
 	vector<RevealedBlock> newRevealedBlocks;
+
+	srand(seed);
 
 	//Main Game Loop
 	while (!gameQuit) {

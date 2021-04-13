@@ -33,13 +33,14 @@ void initialize_solver() {
 }
 
 bool board_checker(vector<PotentialMineTile> potentialMineVec) {
-	uint8_t* localBlockArry = (uint8_t*) malloc(totalNumRow * totalNumCol * sizeof(uint8_t));
-	memcpy(localBlockArry, blockArry, totalNumRow * totalNumCol * sizeof(uint8_t));
-	vector<Coordinate> affectedRevealedTilesVec;
+	unordered_set<Coordinate> affectedRevealedTilesSet;
+    unordered_map<Coordinate, unordered_set<Coordinate>> affectedRTilesToPotentialMineMap;
+    unordered_map<Coordinate, uint8_t> modifiedTilesMap;
 	for (auto potentialMine : potentialMineVec) {
-		localBlockArry[potentialMine.coord.y * totalNumCol + potentialMine.coord.x] = potentialMine.guessIsMine ? 0xEE : 0xE0;
+        modifiedTilesMap.insert(make_pair(potentialMine.coord, blockArry[potentialMine.coord.y * totalNumCol + potentialMine.coord.x]));
+		blockArry[potentialMine.coord.y * totalNumCol + potentialMine.coord.x] = potentialMine.guessIsMine ? 0xEE : 0xE0;
 
-		//Brodcase this guess to all surrounding tiles
+		//Broadcast this guess to all surrounding tiles
 		//Add surrounding tiles to the affectedRTilesVec
 		//If the guess is mine then decrement
 		for (int row = -1; row <= 1; row++) {
@@ -48,7 +49,7 @@ bool board_checker(vector<PotentialMineTile> potentialMineVec) {
 			for (int col = -1; col <= 1; col++) {
 				int newCol = potentialMine.coord.x + col;
 				if (newCol < 0 || newCol >= levelSize[gameLevel].second) continue;
-				uint8_t tileNum = localBlockArry[newRow * totalNumCol + newCol]; 
+				uint8_t tileNum = blockArry[newRow * totalNumCol + newCol]; 
 				//If the tile already has no potential mines surrounding
 				//and the new coming guess is also a mine
 				//it means this combination is impossible
@@ -59,7 +60,9 @@ bool board_checker(vector<PotentialMineTile> potentialMineVec) {
 					//	cout << "Coord: " << potentialMineTile.coord.y << " " << potentialMineTile.coord.x << " ";
 					//	cout << "Guess: " << potentialMineTile.guessIsMine << endl;
 					//}
-					delete (localBlockArry);
+                    for (auto modifiedTile : modifiedTilesMap) {
+                        blockArry[modifiedTile.first.y * totalNumCol + modifiedTile.first.x] = modifiedTile.second;
+                    }
 					return false;
 				}
 				//Don't care about the open tiles, flagged tiles and newly guessed tiles
@@ -68,19 +71,23 @@ bool board_checker(vector<PotentialMineTile> potentialMineVec) {
 				if (tileNum == GUESS_NOT_MINE || tileNum == GUESS_MINE) continue;
 
 				if (potentialMine.guessIsMine == true) {
-					localBlockArry[newRow * totalNumCol + newCol] = tileNum - 1;
+                    Coordinate curCoord = {newCol, newRow};
+                    modifiedTilesMap.insert(make_pair(curCoord, blockArry[newRow * totalNumCol + newCol]));
+					blockArry[newRow * totalNumCol + newCol] = tileNum - 1;
 				}
 
-				affectedRevealedTilesVec.push_back({newCol, newRow});
+                Coordinate affectedRTile = {newCol, newRow};
+				affectedRevealedTilesSet.insert(affectedRTile);
 			}
 		}	
 	}
+
 	//After this combination set
 	//All the revealed tiles on the edge should have a potential mines of 0
 	//If the potential mines is not 0
 	//The acceptable case is that there are some more open tiles
-	for (auto affectedRTile : affectedRevealedTilesVec) {
-		uint8_t affectedRTileNum = localBlockArry[affectedRTile.y * totalNumCol + affectedRTile.x];
+	for (auto affectedRTile : affectedRevealedTilesSet) {
+		uint8_t affectedRTileNum = blockArry[affectedRTile.y * totalNumCol + affectedRTile.x];
 		uint8_t numOfRemainOpenTiles = 0;
 		for (int row = -1; row <= 1; row++) {
 			int newRow = affectedRTile.y + row;
@@ -88,7 +95,7 @@ bool board_checker(vector<PotentialMineTile> potentialMineVec) {
 			for (int col = -1; col <= 1; col++) {
 				int newCol = affectedRTile.x + col;
 				if (newCol < 0 || newCol >= levelSize[gameLevel].second) continue;
-				if ((localBlockArry[newRow * totalNumCol + newCol] & OPEN_TILE_MASK) == OPEN_TILE_MASK) {
+				if ((blockArry[newRow * totalNumCol + newCol] & OPEN_TILE_MASK) == OPEN_TILE_MASK) {
 					numOfRemainOpenTiles++;
 				}
 			}
@@ -99,11 +106,16 @@ bool board_checker(vector<PotentialMineTile> potentialMineVec) {
 			//	cout << "Coord: " << potentialMineTile.coord.y << " " << potentialMineTile.coord.x << " ";
 			//	cout << "Guess: " << potentialMineTile.guessIsMine << endl;
 			//}
-			delete (localBlockArry);
+            for (auto modifiedTile : modifiedTilesMap) {
+                blockArry[modifiedTile.first.y * totalNumCol + modifiedTile.first.x] = modifiedTile.second;
+            }
 			return false;
 		}
 	}
-	delete (localBlockArry);
+    for (auto modifiedTile : modifiedTilesMap) {
+        blockArry[modifiedTile.first.y * totalNumCol + modifiedTile.first.x] = modifiedTile.second;
+    }
+    //cout << "LOOP TIME: " << loop_time << endl;
 	return true;
 }
 
@@ -111,7 +123,7 @@ vector<Coordinate> openTileCoordsForTree;
 vector<PotentialMineTile> potentialMineTileVecInTree;
 int numOfMinesInCombInTree;
 vector<vector<PotentialMineTile>> validMineTileCombinationVec;
-void treeExpansion(int level, bool guess) {
+void tree_expansion(int level, bool guess) {
 	Coordinate curCoord = openTileCoordsForTree[level];
 	PotentialMineTile curPotentialMineTile = {curCoord, guess};
 	potentialMineTileVecInTree.push_back(curPotentialMineTile);
@@ -132,8 +144,8 @@ void treeExpansion(int level, bool guess) {
 			if (guess == true) numOfMinesInCombInTree--;
 			return;
 		} else {
-			treeExpansion(level + 1, 0);
-			treeExpansion(level + 1, 1);
+			tree_expansion(level + 1, 0);
+			tree_expansion(level + 1, 1);
 		}
 	}
 
@@ -194,13 +206,17 @@ Command solver(vector<RevealedBlock> revealedBlocksVec, Command command) {
 		//	gameStatus = STATUS_GAME_WAIT_TO_START;
 		//	newCommand.commandExecution |= CMD_EXEC_NEW_BOARD;
 		//}
-		//if (totalGameRun < 2) 
+        double winRate = (double) totalWin / totalGameRun;
+        cout << "WIN RATE: " << winRate << " " << totalWin << " " << totalGameRun << " Flaged " << totalFlagged << endl;
+		if (totalGameRun < 10) 
 		{
-			double winRate = (double) totalWin / totalGameRun;
-			cout << "WIN RATE: " << winRate << " " << totalWin << " " << totalGameRun << " Flaged " << totalFlagged << endl;
 			gameStatus = STATUS_GAME_WAIT_TO_START;
 			newCommand.commandExecution |= CMD_EXEC_NEW_BOARD;
 		}
+        else
+        {
+            gameQuit = true;
+        }
 		//In the case the game wins or over. Send the command to the board setting part
 		//Reset boards and reset status to WAIT_TO_START
 		//Don't give any tile selection
@@ -213,7 +229,6 @@ Command solver(vector<RevealedBlock> revealedBlocksVec, Command command) {
 		gameStatus &= (~STATUS_GAME_WAIT_TO_START);
 
 		totalGameRun++;
-		//cout << "+++++++++++++++++++++ NEW GAME +++++++++++++++++++++++++" << endl;
 		totalFlagged = 0;
 
 		for (int i = 0; i <= 8; i++) {
@@ -327,7 +342,7 @@ Command solver(vector<RevealedBlock> revealedBlocksVec, Command command) {
 						flagOneTile(coord);
 					}
 				} else {
-					if (info.coordVec.size() < info.numOfMines) cout << "ERROR" << endl;
+					if (info.coordVec.size() < info.numOfMines) cout << "INCORRECT INFO SET ERROR" << endl;
 					//In the case that vector size greater than remaining mines
 					//Need to reconstruct the information struct.
 					//If a tile is still open to flag, add it back to the vec
@@ -582,7 +597,7 @@ Command solver(vector<RevealedBlock> revealedBlocksVec, Command command) {
 			}
 		}
 
-		//cout << "REGION NUM" << regionEdgeTilesVec.size() << endl;
+		//cout << "REGION NUM: " << regionEdgeTilesVec.size() << endl;
 
 		//Build up a tree based on the edgeTileSet.
 		//Tree nodes are the coordinate and if it is a mine
@@ -602,8 +617,8 @@ Command solver(vector<RevealedBlock> revealedBlocksVec, Command command) {
 
 			if (openTileCoordsForTree.size() > 0) {
 				numOfMinesInCombInTree = 0;
-				treeExpansion(0, 0);
-				treeExpansion(0, 1);
+				tree_expansion(0, 0);
+				tree_expansion(0, 1);
 				//cout << "NUM OF VALID COMBS: " << validMineTileCombinationVec.size() << endl;
 
 				if (validMineTileCombinationVec.size() > 0) {
@@ -674,9 +689,11 @@ Command solver(vector<RevealedBlock> revealedBlocksVec, Command command) {
 			}
 		}
 		if (!allQEmpty) {
-			int randCoordIndex = rand() % lowestRateInfo.coordVec.size();
+			cout << "RANDOM BASED ON LOWEST RATE IN INFO" << endl;
+            int randCoordIndex = rand() % lowestRateInfo.coordVec.size();
 			pendingRevealQ->push(lowestRateInfo.coordVec[randCoordIndex]);
 		} else {
+            cout << "FULLY RANDOM SELECTION" << endl;
 			//TODO If cannot find anything, can go deeper in simulation
 			//TODO Random selection or select in the region
 			bool choose = true;
